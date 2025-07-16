@@ -1,0 +1,103 @@
+---
+title: "using scRNAseqTools for scRNAeq analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{scRNAseq-workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(scRNAseqTools)
+library(scRNAseqTools)
+library(Seurat)
+library(SingleR)
+library(celldex)
+library(ggplot2)
+```
+## Load Data
+
+```{r eval=FALSE}
+# Load expression data and gene annotation
+
+data_list <- load_data_and_gtf(
+  counts_dir = "/Users/chiara/scRNAseqTools/filtered_feature_bc_matrix/",
+  gtf_path = "/Users/chiara/scRNAseqTools/Homo_sapiens.GRCh38.111.gtf.gz"
+)
+
+# Extract the objects
+seurat_obj <- data_list$seurat_obj
+gtf <- data_list$gtf
+```
+## Gene annotation
+```{r}
+# Apply filtering function
+library(rtracklayer)
+gtf <- import("/Users/chiara/scRNAseqTools/Homo_sapiens.GRCh38.111.gtf.gz")
+gtf_pc <- filter_protein_coding_genes(gtf)
+```
+## Gene Expression Summary
+```{r}
+seurat_obj$genes_expr_3umis <- genes_expressed_per_cell
+```
+we can then visualize this distribution using a violin plot, which shows the spread of active genes (≥3 UMIs) across all cells.
+```{r}
+# Create dataframe for plotting
+df_violin <- data.frame(
+  cell = colnames(seurat_obj),
+  genes_expressed = seurat_obj$genes_expr_3umis
+)
+
+# Violin plot showing number of expressed genes per cell
+ggplot(df_violin, aes(x = "", y = genes_expressed)) +
+  geom_violin(fill = "lightblue") +
+  geom_boxplot(width = 0.1, outlier.shape = NA) +
+  labs(
+    title = "Number of genes expressed (≥3 UMIs) per cell",
+    y = "Number of genes",
+    x = ""
+  ) +
+  theme_minimal()
+```
+## Gene filtering
+```{r}
+gtf_clean <- remove_unwanted_genes(gtf_pc)
+
+# Create summary table
+summary_table <- data.frame(
+     Category = c("mitochondrial", "Ribosomal", "Pseudogenes"),
+     Removed_genes = c(n_mito, n_ribo, n_pseudo)
+ )
+# Visualize summary table
+ print(summary_table)
+```
+## PCA
+```{r}
+# Run PCA analysis with normalization and scaling data
+seurat_obj <- RunPCA(seurat_obj)
+# Visualize data as Elbow plot
+seurat_obj <- run_basic_pca(seurat_obj)
+print(seurat_obj[["pca"]])
+ElbowPlot(seurat_obj)
+```
+```{r}
+# Create histogram of variance explained by first 20 PCs with ggplot2 library
+plot_pca_variance(seurat_obj)
+```
+## UMAP
+```{r}
+# Run UMAP and clusterization
+seurat_obj <- run_umap_and_cluster(seurat_obj, dims = 10)
+# Visualize plot
+DimPlot(seurat_obj, reduction = "umap", label = TRUE) +
+ggplot2::ggtitle("UMAP of clustered cells")
+```
+## Cell type annotation
+```{r}
+# Load the annotation reference dataset
+ref <- celldex::HumanPrimaryCellAtlasData()
+# Add labels and match to UMAP plot
+seurat_obj$SingleR_label <- pred$labels[match(seurat_obj$seurat_clusters, rownames(pred))]
+DimPlot(seurat_obj, group.by = "SingleR_label", label = TRUE) +
+  ggtitle("UMAP with predicted cell types (SingleR)”)
+```
