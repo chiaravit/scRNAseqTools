@@ -9,7 +9,10 @@
 #' @export
 #'
 filter_protein_coding_genes <- function(gtf) {
-  gtf[gtf$type == "gene" & gtf$gene_biotype == "protein_coding"]
-
-  length(gtf_pc)
+  # This line filters the GTF and implicitly returns it (or explicitly use 'return()')
+  filtered_gtf <- gtf[gtf$type == "gene" & gtf$gene_biotype == "protein_coding"]
+  return(filtered_gtf) # Explicitly return the filtered object
 }
+
+# The 'length(gtf_pc)' line should NOT be here.
+# If you want to print the length, do it in run_all_analysis.R AFTER calling this function.

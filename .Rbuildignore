@@ -1,4 +1,18 @@
-^scRNAseqTools\.Rproj$
+^.*\.Rproj$
 ^\.Rproj\.user$
-^doc$
-^Meta$
+^\.Rhistory$
+^\.Rdata$
+^\.DS_Store$
+^Thumbs\.db$
+^inst/yaml$
+^inst/CITATION$
+^inst/NEWS.md$
+^cran-comments.md$
+^renv/$
+^renv/activate.R$
+^renv/library/$
+^renv/settings.json$
+^tests/testthat/$
+^tests/testthat\.R$
+^README.md$ # Spesso ignorato per non includerlo nel pacchetto binario
+^output/ # Se la cartella output non deve far parte del pacchetto R
