@@ -1,28 +1,41 @@
 ---
-title: "using scRNAseqTools for scRNAeq analysis"
+title: "Using scRNAseqTools for scRNAseq analysis"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{scRNAseq-workflow}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-library(scRNAseqTools)
-library(scRNAseqTools)
+
+source("../R/load_data.R") 
+source("../R/filter_genes.R") 
+source("../R/histogram_variance_first_20PCs.R") 
+source("../R/how_many_expressed_genes_umi.R")  
+source("../R/remove_unwanted_genes.R") 
+source("../R/run_all_analysis.R") 
+source("../R/run_PCA.R") 
+source("../R/run_UMAP_and_clustering.R") 
+source("../R/table_removed_genes.R") 
+source("../R/UMAP_with_cell_annotation.R") 
+source("../R/violin_plot.R") 
+
+# Load necessary R packages
 library(Seurat)
 library(SingleR)
 library(celldex)
 library(ggplot2)
+library(patchwork) 
+library(dplyr) 
+library(rtracklayer) 
 ```
-## Load Data
-
-```{r eval=FALSE}
-# Load expression data and gene annotation
-
+## Load Data and gene annotation
+```{r}
 data_list <- load_data_and_gtf(
-  counts_dir = "/Users/chiara/scRNAseqTools/filtered_feature_bc_matrix/",
-  gtf_path = "/Users/chiara/scRNAseqTools/Homo_sapiens.GRCh38.111.gtf.gz"
+  counts_dir = "../filtered_feature_bc_matrix/",
+  gtf_path = "../Homo_sapiens.GRCh38.111.gtf.gz"
 )
 
 # Extract the objects
@@ -31,16 +44,13 @@ gtf <- data_list$gtf
 ```
 ## Gene annotation
 ```{r}
-# Apply filtering function
-library(rtracklayer)
-gtf <- import("/Users/chiara/scRNAseqTools/Homo_sapiens.GRCh38.111.gtf.gz")
+gtf <- import("../Homo_sapiens.GRCh38.111.gtf.gz") 
 gtf_pc <- filter_protein_coding_genes(gtf)
 ```
 ## Gene Expression Summary
 ```{r}
 seurat_obj$genes_expr_3umis <- genes_expressed_per_cell
 ```
-we can then visualize this distribution using a violin plot, which shows the spread of active genes (≥3 UMIs) across all cells.
 ```{r}
 # Create dataframe for plotting
 df_violin <- data.frame(
@@ -96,6 +106,7 @@ ggplot2::ggtitle("UMAP of clustered cells")
 ```{r}
 # Load the annotation reference dataset
 ref <- celldex::HumanPrimaryCellAtlasData()
+pred <- SingleR(test = GetAssayData(seurat_obj, slot = "data"), ref = ref, labels = ref$label.main) # SingleR function
 # Add labels and match to UMAP plot
 seurat_obj$SingleR_label <- pred$labels[match(seurat_obj$seurat_clusters, rownames(pred))]
 DimPlot(seurat_obj, group.by = "SingleR_label", label = TRUE) +
